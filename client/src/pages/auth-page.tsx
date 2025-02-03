@@ -10,7 +10,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { insertUserSchema, UserRole } from "@shared/schema";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const authSchema = insertUserSchema.extend({
   confirmPassword: z.string(),
@@ -37,10 +37,11 @@ export default function AuthPage() {
     },
   });
 
-  if (user) {
-    setLocation("/");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const onSubmit = (values: z.infer<typeof authSchema>) => {
     if (isLogin) {
@@ -59,6 +60,10 @@ export default function AuthPage() {
       });
     }
   };
+
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -123,23 +128,23 @@ export default function AuthPage() {
                               defaultValue={field.value}
                               className="flex space-x-4"
                             >
-                              <FormItem>
+                              <FormItem className="flex items-center space-x-2">
                                 <FormControl>
                                   <RadioGroupItem value={UserRole.CUSTOMER} />
                                 </FormControl>
-                                <FormLabel>Customer</FormLabel>
+                                <FormLabel className="font-normal">Customer</FormLabel>
                               </FormItem>
-                              <FormItem>
+                              <FormItem className="flex items-center space-x-2">
                                 <FormControl>
                                   <RadioGroupItem value={UserRole.DELIVERY} />
                                 </FormControl>
-                                <FormLabel>Delivery</FormLabel>
+                                <FormLabel className="font-normal">Delivery</FormLabel>
                               </FormItem>
-                              <FormItem>
+                              <FormItem className="flex items-center space-x-2">
                                 <FormControl>
                                   <RadioGroupItem value={UserRole.BUSINESS} />
                                 </FormControl>
-                                <FormLabel>Business</FormLabel>
+                                <FormLabel className="font-normal">Business</FormLabel>
                               </FormItem>
                             </RadioGroup>
                           </FormControl>
@@ -180,7 +185,7 @@ export default function AuthPage() {
                         <FormItem>
                           <FormLabel>Address</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -218,11 +223,6 @@ export default function AuthPage() {
             The premier laundry delivery service in Morocco connecting customers,
             businesses, and delivery partners in one seamless platform.
           </p>
-          <img
-            src="https://images.unsplash.com/photo-1507679799987-c73779587ccf"
-            alt="Professional Laundry Service"
-            className="mt-8 rounded-lg shadow-xl"
-          />
         </div>
       </div>
     </div>
