@@ -12,20 +12,28 @@ import { insertUserSchema, UserRole } from "@shared/schema";
 import { Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const authSchema = insertUserSchema.extend({
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
+// Only validate password and confirmPassword when registering
+const loginSchema = insertUserSchema.pick({
+  username: true,
+  password: true,
 });
+
+const registerSchema = insertUserSchema
+  .extend({
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
 
-  const form = useForm<z.infer<typeof authSchema>>({
-    resolver: zodResolver(authSchema),
+  const form = useForm<z.infer<typeof registerSchema>>({
+    resolver: zodResolver(isLogin ? loginSchema : registerSchema),
     defaultValues: {
       username: "",
       password: "",
@@ -43,21 +51,15 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
-  const onSubmit = (values: z.infer<typeof authSchema>) => {
+  const onSubmit = (values: z.infer<typeof registerSchema>) => {
     if (isLogin) {
       loginMutation.mutate({
         username: values.username,
         password: values.password,
       });
     } else {
-      registerMutation.mutate({
-        username: values.username,
-        password: values.password,
-        role: values.role,
-        name: values.name,
-        phone: values.phone,
-        address: values.address,
-      });
+      const { confirmPassword, ...registerData } = values;
+      registerMutation.mutate(registerData);
     }
   };
 
@@ -207,7 +209,10 @@ export default function AuthPage() {
                   type="button"
                   variant="link"
                   className="w-full"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    form.reset();
+                  }}
                 >
                   {isLogin ? "Need an account? Register" : "Have an account? Login"}
                 </Button>
