@@ -9,6 +9,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import BusinessMap from "@/components/business/business-map";
 
 export default function OrderForm() {
   const { toast } = useToast();
@@ -19,10 +20,12 @@ export default function OrderForm() {
       pickupAddress: "",
       deliveryAddress: "",
       price: 0,
+      businessId: undefined,
+      status: "pending",
     },
   });
 
-  const { data: businesses } = useQuery({
+  const { data: businesses, isLoading: isLoadingBusinesses } = useQuery({
     queryKey: ["/api/businesses"],
   });
 
@@ -52,74 +55,75 @@ export default function OrderForm() {
     createOrder.mutate(values);
   };
 
+  const handleBusinessSelect = (businessId: number) => {
+    form.setValue("businessId", businessId);
+  };
+
+  if (isLoadingBusinesses) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Order</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create New Order</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="businessId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Business</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={field.value}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
-                    >
-                      <option value="">Select a business</option>
-                      {businesses?.map((business) => (
-                        <option key={business.id} value={business.id}>
-                          {business.name}
-                        </option>
-                      ))}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="pickupAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Pickup Address</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="deliveryAddress"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Delivery Address</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={createOrder.isPending}>
-              {createOrder.isPending && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Create Order
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+    <div className="space-y-8">
+      <BusinessMap 
+        businesses={businesses || []}
+        onSelectBusiness={handleBusinessSelect}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Order</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="pickupAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pickup Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="deliveryAddress"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Delivery Address</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" disabled={createOrder.isPending || !form.getValues().businessId}>
+                {createOrder.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Create Order
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

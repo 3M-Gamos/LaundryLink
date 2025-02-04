@@ -7,11 +7,11 @@ export default function CustomerDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+        <OrderForm />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <OrderForm />
           <OrderMap />
+          <OrderList />
         </div>
-        <OrderList />
       </div>
     </DashboardLayout>
   );
