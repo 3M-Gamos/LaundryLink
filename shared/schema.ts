@@ -19,6 +19,22 @@ export const OrderStatus = {
   CANCELLED: "cancelled",
 } as const;
 
+export const LaundryItem = {
+  SHIRT: "shirt",
+  PANTS: "pants",
+  DRESS: "dress",
+  SUIT: "suit",
+  COAT: "coat",
+  BEDDING: "bedding",
+  CURTAINS: "curtains",
+} as const;
+
+export type OrderItem = {
+  item: keyof typeof LaundryItem;
+  quantity: number;
+  price: number;
+};
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -36,9 +52,11 @@ export const orders = pgTable("orders", {
   businessId: integer("business_id").notNull(),
   deliveryId: integer("delivery_id"),
   status: text("status", { enum: Object.values(OrderStatus) }).notNull(),
-  items: jsonb("items").notNull(),
+  items: jsonb("items").$type<OrderItem[]>().notNull(),
   pickupAddress: text("pickup_address").notNull(),
   deliveryAddress: text("delivery_address").notNull(),
+  pickupTime: timestamp("pickup_time").notNull(),
+  deliveryTime: timestamp("delivery_time").notNull(),
   price: integer("price").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -52,6 +70,22 @@ export const ratings = pgTable("ratings", {
   comment: text("comment"),
 });
 
+export const orderItemSchema = z.object({
+  item: z.enum(Object.keys(LaundryItem) as [keyof typeof LaundryItem, ...Array<keyof typeof LaundryItem>]),
+  quantity: z.number().min(1),
+  price: z.number().min(0),
+});
+
+export const insertOrderSchema = createInsertSchema(orders, {
+  items: z.array(orderItemSchema),
+  pickupTime: z.string().or(z.date()),
+  deliveryTime: z.string().or(z.date()),
+}).omit({
+  id: true,
+  deliveryId: true,
+  createdAt: true,
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -59,12 +93,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   name: true,
   phone: true,
   address: true,
-});
-
-export const insertOrderSchema = createInsertSchema(orders).omit({
-  id: true,
-  deliveryId: true,
-  createdAt: true,
 });
 
 export const insertRatingSchema = createInsertSchema(ratings).omit({
