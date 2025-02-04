@@ -1,5 +1,5 @@
 import { IStorage } from "./storage";
-import { User, Order, Rating, InsertUser, InsertOrder, InsertRating } from "@shared/schema";
+import { User, Order, Rating, InsertUser, InsertOrder, InsertRating, UserRole } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";
 
@@ -19,6 +19,61 @@ export class MemStorage implements IStorage {
     this.currentId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
+    });
+
+    // Initialize with sample businesses
+    const sampleBusinesses = [
+      {
+        username: "pressing_casablanca",
+        password: "password123",
+        role: UserRole.BUSINESS,
+        name: "Pressing Royal Casablanca",
+        phone: "+212 522 123456",
+        address: "123 Boulevard Mohammed V, Casablanca",
+        rating: 4.8,
+      },
+      {
+        username: "pressing_rabat",
+        password: "password123",
+        role: UserRole.BUSINESS,
+        name: "Pressing Express Rabat",
+        phone: "+212 537 234567",
+        address: "45 Avenue Hassan II, Rabat",
+        rating: 4.6,
+      },
+      {
+        username: "pressing_marrakech",
+        password: "password123",
+        role: UserRole.BUSINESS,
+        name: "Pressing Medina Marrakech",
+        phone: "+212 524 345678",
+        address: "78 Rue de la Kasbah, Marrakech",
+        rating: 4.9,
+      },
+      {
+        username: "pressing_tanger",
+        password: "password123",
+        role: UserRole.BUSINESS,
+        name: "Pressing Modern Tanger",
+        phone: "+212 539 456789",
+        address: "15 Boulevard Pasteur, Tanger",
+        rating: 4.7,
+      },
+      {
+        username: "pressing_fes",
+        password: "password123",
+        role: UserRole.BUSINESS,
+        name: "Pressing Traditionnel Fes",
+        phone: "+212 535 567890",
+        address: "32 Rue Talaa Kebira, Fes",
+        rating: 4.5,
+      }
+    ];
+
+    // Add sample businesses to the storage
+    sampleBusinesses.forEach(business => {
+      const id = this.currentId++;
+      this.users.set(id, { ...business, id });
     });
   }
 
