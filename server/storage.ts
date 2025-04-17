@@ -1,4 +1,16 @@
-import { IStorage } from "./storage";
+export interface IStorage {
+  sessionStore: session.Store;
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(insertUser: InsertUser): Promise<User>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: number, update: Partial<Order>): Promise<Order>;
+  getOrder(id: number): Promise<Order | undefined>;
+  getOrdersByUser(userId: number, role: "customer" | "business" | "delivery"): Promise<Order[]>;
+  createRating(rating: InsertRating): Promise<Rating>;
+  getRatingsByUser(userId: number): Promise<Rating[]>;
+  getUsersByRole(role: string): Promise<User[]>;
+}
 import { User, Order, Rating, InsertUser, InsertOrder, InsertRating, UserRole } from "@shared/schema";
 import createMemoryStore from "memorystore";
 import session from "express-session";

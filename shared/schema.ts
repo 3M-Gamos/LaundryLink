@@ -5,28 +5,28 @@ import { z } from "zod";
 export const UserRole = {
   CUSTOMER: "customer",
   DELIVERY: "delivery",
-  BUSINESS: "business",
+  BUSINESS: "business", // Gardé comme "business" pour la BD
 } as const;
 
 export const OrderStatus = {
-  PENDING: "pending",
-  ACCEPTED: "accepted",
-  PICKED_UP: "picked_up",
-  IN_PROGRESS: "in_progress",
-  READY: "ready",
-  DELIVERING: "delivering",
-  DELIVERED: "delivered",
-  CANCELLED: "cancelled",
+  PENDING: "En attente",
+  ACCEPTED: "Acceptée",
+  PICKED_UP: "Ramassée",
+  IN_PROGRESS: "En traitement",
+  READY: "Prête",
+  DELIVERING: "En livraison",
+  DELIVERED: "Livrée",
+  CANCELLED: "Annulée",
 } as const;
 
 export const LaundryItem = {
-  SHIRT: "shirt",
-  PANTS: "pants",
-  DRESS: "dress",
-  SUIT: "suit",
-  COAT: "coat",
-  BEDDING: "bedding",
-  CURTAINS: "curtains",
+  SHIRT: "Chemise",
+  PANTS: "Pantalon",
+  DRESS: "Robe",
+  SUIT: "Costume",
+  COAT: "Manteau",
+  BEDDING: "Literie",
+  CURTAINS: "Rideaux",
 } as const;
 
 export type OrderItem = {
@@ -76,15 +76,29 @@ export const orderItemSchema = z.object({
   price: z.number().min(0),
 });
 
-export const insertOrderSchema = createInsertSchema(orders, {
+// Créer un schéma de base pour les commandes
+const baseOrderSchema = createInsertSchema(orders, {
   items: z.array(orderItemSchema),
   pickupTime: z.string().or(z.date()),
   deliveryTime: z.string().or(z.date()),
-}).omit({
-  id: true,
-  deliveryId: true,
-  createdAt: true,
 });
+
+// Schéma côté client - customerId est optionnel car il sera définit par le serveur
+export const insertOrderSchema = baseOrderSchema
+  .omit({
+    id: true,
+    deliveryId: true,
+    createdAt: true,
+  })
+  .partial({ customerId: true });
+
+// Schéma côté serveur - customerId reste requis
+export const insertOrderSchemaServer = baseOrderSchema
+  .omit({
+    id: true,
+    deliveryId: true,
+    createdAt: true,
+  });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -100,6 +114,7 @@ export const insertRatingSchema = createInsertSchema(ratings).omit({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
 export type User = typeof users.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type Rating = typeof ratings.$inferSelect;

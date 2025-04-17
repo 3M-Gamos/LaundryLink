@@ -1,6 +1,11 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import dotenv from "dotenv";
+import { networkInterfaces } from 'os';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -61,5 +66,20 @@ app.use((req, res, next) => {
   const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`serving on port ${PORT}`);
+    
+    // Afficher les adresses IP locales pour faciliter le test sur mobile
+    const nets = networkInterfaces();
+    log('Adresses IP disponibles pour tester sur mobile:');
+    for (const name of Object.keys(nets)) {
+      const interfaces = nets[name];
+      if (interfaces) {
+        for (const net of interfaces) {
+          // Skip over non-IPv4 and internal (loopback) addresses
+          if (net.family === 'IPv4' && !net.internal) {
+            log(`  http://${net.address}:${PORT}`);
+          }
+        }
+      }
+    }
   });
 })();

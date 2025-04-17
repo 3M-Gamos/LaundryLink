@@ -4,9 +4,10 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import OrdersPage from "@/pages/orders-page";
 import CustomerDashboard from "@/pages/customer/dashboard";
 import DeliveryDashboard from "@/pages/delivery/dashboard";
-import BusinessDashboard from "@/pages/business/dashboard";
+import AdminDashboard from "@/pages/admin/dashboard";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
 import { UserRole } from "@shared/schema";
@@ -15,6 +16,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <ProtectedRoute path="/orders" component={OrdersPage} />
       <ProtectedRoute 
         path="/" 
         component={({ user }) => {
@@ -24,7 +26,7 @@ function Router() {
             case UserRole.DELIVERY:
               return <DeliveryDashboard />;
             case UserRole.BUSINESS:
-              return <BusinessDashboard />;
+              return <AdminDashboard />;
             default:
               return <NotFound />;
           }

@@ -38,7 +38,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       confirmPassword: "",
-      role: UserRole.CUSTOMER,
+      role: UserRole.CUSTOMER, // Par défaut, tous les utilisateurs sont des clients
       name: "",
       phone: "",
       address: "",
@@ -72,7 +72,7 @@ export default function AuthPage() {
       <div className="flex-1 p-8 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>{isLogin ? "Login" : "Register"}</CardTitle>
+            <CardTitle>{isLogin ? "Connexion" : "Inscription"}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -82,7 +82,7 @@ export default function AuthPage() {
                   name="username"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Username</FormLabel>
+                      <FormLabel>Nom d'utilisateur</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -95,7 +95,7 @@ export default function AuthPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel>Mot de passe</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -110,7 +110,7 @@ export default function AuthPage() {
                       name="confirmPassword"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Confirm Password</FormLabel>
+                          <FormLabel>Confirmer le mot de passe</FormLabel>
                           <FormControl>
                             <Input type="password" {...field} />
                           </FormControl>
@@ -118,48 +118,13 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="role"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Role</FormLabel>
-                          <FormControl>
-                            <RadioGroup
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                              className="flex space-x-4"
-                            >
-                              <FormItem className="flex items-center space-x-2">
-                                <FormControl>
-                                  <RadioGroupItem value={UserRole.CUSTOMER} />
-                                </FormControl>
-                                <FormLabel className="font-normal">Customer</FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-2">
-                                <FormControl>
-                                  <RadioGroupItem value={UserRole.DELIVERY} />
-                                </FormControl>
-                                <FormLabel className="font-normal">Delivery</FormLabel>
-                              </FormItem>
-                              <FormItem className="flex items-center space-x-2">
-                                <FormControl>
-                                  <RadioGroupItem value={UserRole.BUSINESS} />
-                                </FormControl>
-                                <FormLabel className="font-normal">Business</FormLabel>
-                              </FormItem>
-                            </RadioGroup>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Sélection du rôle supprimée - tous les utilisateurs seront des clients */}
                     <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Full Name</FormLabel>
+                          <FormLabel>Nom complet</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -172,7 +137,7 @@ export default function AuthPage() {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone</FormLabel>
+                          <FormLabel>Téléphone</FormLabel>
                           <FormControl>
                             <Input {...field} />
                           </FormControl>
@@ -185,7 +150,7 @@ export default function AuthPage() {
                       name="address"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Address</FormLabel>
+                          <FormLabel>Adresse</FormLabel>
                           <FormControl>
                             <Input {...field} value={field.value || ''} />
                           </FormControl>
@@ -203,7 +168,7 @@ export default function AuthPage() {
                   {(loginMutation.isPending || registerMutation.isPending) && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  {isLogin ? "Login" : "Register"}
+                  {isLogin ? "Connexion" : "Inscription"}
                 </Button>
                 <Button
                   type="button"
@@ -214,7 +179,7 @@ export default function AuthPage() {
                     form.reset();
                   }}
                 >
-                  {isLogin ? "Need an account? Register" : "Have an account? Login"}
+                  {isLogin ? "Besoin d'un compte? Inscrivez-vous" : "Déjà un compte? Connectez-vous"}
                 </Button>
               </form>
             </Form>
@@ -223,10 +188,10 @@ export default function AuthPage() {
       </div>
       <div className="hidden lg:flex flex-1 bg-primary items-center justify-center p-8">
         <div className="max-w-lg text-primary-foreground">
-          <h1 className="text-4xl font-bold mb-4">Welcome to LaundryConnect</h1>
+          <h1 className="text-4xl font-bold mb-4">Bienvenue sur LaundryConnect</h1>
           <p className="text-lg opacity-90">
-            The premier laundry delivery service in Morocco connecting customers,
-            businesses, and delivery partners in one seamless platform.
+            Le premier service de livraison de linge au Maroc connectant clients,
+            pressings et livreurs sur une plateforme unique.
           </p>
         </div>
       </div>

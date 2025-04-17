@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertOrderSchema, LaundryItem, orderItemSchema, type OrderItem } from "@shared/schema";
+import { insertOrderSchema, LaundryItem, OrderStatus, orderItemSchema, type OrderItem } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,7 +11,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Plus, Minus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import BusinessMap from "@/components/business/business-map";
+import AdminMap from "@/components/admin/admin-map";
+import AddressMap from "@/components/order/address-map";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { fr } from "date-fns/locale";
 
 export default function OrderForm() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const form = useForm({
     resolver: zodResolver(insertOrderSchema),
@@ -28,7 +32,7 @@ export default function OrderForm() {
       deliveryTime: new Date().toISOString(),
       price: 0,
       businessId: undefined,
-      status: "pending",
+      status: OrderStatus.PENDING, // "En attente"
     },
   });
 
@@ -38,6 +42,7 @@ export default function OrderForm() {
 
   const createOrder = useMutation({
     mutationFn: async (data: z.infer<typeof insertOrderSchema>) => {
+      console.log("Envoi des données de commande:", data);
       const res = await apiRequest("POST", "/api/orders", data);
       return res.json();
     },
@@ -58,11 +63,77 @@ export default function OrderForm() {
     },
   });
 
+  // Fonction pour calculer le prix total
+  const calculateTotalPrice = (items: OrderItem[]) => {
+    return items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
   const onSubmit = (values: z.infer<typeof insertOrderSchema>) => {
-    createOrder.mutate(values);
+    // Vérifier que l'utilisateur est connecté
+    if (!user) {
+      toast({
+        title: "Erreur",
+        description: "Vous devez être connecté pour créer une commande",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Créer une copie des données sans customerId (sera ajouté côté serveur)
+    const orderData = {
+      businessId: values.businessId,
+      status: OrderStatus.PENDING,
+      items: JSON.parse(JSON.stringify(values.items)),
+      pickupAddress: values.pickupAddress,
+      deliveryAddress: values.deliveryAddress,
+      pickupTime: values.pickupTime,
+      deliveryTime: values.deliveryTime,
+      price: calculateTotalPrice(values.items as OrderItem[])
+    };
+    
+    console.log("===== ENVOI DE COMMANDE DEPUIS FORMULAIRE =====\n", orderData);
+    
+    // Vérifier si les items sont au bon format
+    const items = orderData.items as OrderItem[];
+    if (!items || items.length === 0) {
+      console.error("Aucun item dans la commande!");
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner au moins un article",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!orderData.businessId) {
+      console.error("Aucun pressing sélectionné!");
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un pressing sur la carte",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!orderData.pickupAddress || !orderData.deliveryAddress) {
+      console.error("Adresses manquantes!");
+      toast({
+        title: "Erreur",
+        description: "Veuillez remplir les adresses de ramassage et de livraison",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      createOrder.mutate(orderData);
+    } catch (error) {
+      console.error("Erreur lors de la création de la commande:", error);
+    }
   };
 
   const handleBusinessSelect = (businessId: number) => {
+    console.log("Pressing sélectionné:", businessId);
     form.setValue("businessId", businessId);
   };
 
@@ -72,35 +143,51 @@ export default function OrderForm() {
 
   const items = form.watch("items") as OrderItem[];
 
+  // Assurez-vous que l'objet item est en majuscules comme requis par le schéma
   const handleAddItem = (item: keyof typeof LaundryItem) => {
+    console.log("Adding item:", item, "(type:", typeof item, ")");
     const currentItems = form.getValues("items") as OrderItem[];
     const existingItem = currentItems.find((i) => i.item === item);
+    let updatedItems: OrderItem[];
 
     if (existingItem) {
-      const updatedItems = currentItems.map((i) =>
+      updatedItems = currentItems.map((i) =>
         i.item === item ? { ...i, quantity: i.quantity + 1 } : i
       );
-      form.setValue("items", updatedItems);
     } else {
-      form.setValue("items", [...currentItems, { item, quantity: 1, price: 1000 }]);
+      // Créer un nouvel élément avec la clé en majuscules
+      const newItem: OrderItem = { 
+        item: item, // item est déjà une clé (c'est-à-dire en majuscules)
+        quantity: 1, 
+        price: 1000 
+      };
+      
+      console.log("Nouvel article ajouté:", newItem);
+      updatedItems = [...currentItems, newItem];
     }
+    
+    form.setValue("items", updatedItems);
+    // Mettre à jour le prix total
+    form.setValue("price", calculateTotalPrice(updatedItems));
   };
 
   const handleRemoveItem = (item: keyof typeof LaundryItem) => {
+    console.log("Removing item:", item);
     const currentItems = form.getValues("items") as OrderItem[];
     const existingItem = currentItems.find((i) => i.item === item);
+    let updatedItems: OrderItem[];
 
     if (existingItem && existingItem.quantity > 1) {
-      const updatedItems = currentItems.map((i) =>
+      updatedItems = currentItems.map((i) =>
         i.item === item ? { ...i, quantity: i.quantity - 1 } : i
       );
-      form.setValue("items", updatedItems);
     } else {
-      form.setValue(
-        "items",
-        currentItems.filter((i) => i.item !== item)
-      );
+      updatedItems = currentItems.filter((i) => i.item !== item);
     }
+    
+    form.setValue("items", updatedItems);
+    // Mettre à jour le prix total
+    form.setValue("price", calculateTotalPrice(updatedItems));
   };
 
   if (isLoadingBusinesses) {
@@ -118,11 +205,34 @@ export default function OrderForm() {
     );
   }
 
+  // Gestionnaire de changement d'adresse de ramassage
+  const handlePickupAddressChange = (address: string, coordinates: [number, number]) => {
+    console.log("Nouvelle adresse de ramassage:", address, coordinates);
+    form.setValue("pickupAddress", address);
+    
+    // Si vous souhaitez également stocker les coordonnées, vous pouvez le faire dans un état local
+    // ou ajouter un nouveau champ au formulaire
+  };
+
+  // Gestionnaire de changement d'adresse de livraison
+  const handleDeliveryAddressChange = (address: string, coordinates: [number, number]) => {
+    console.log("Nouvelle adresse de livraison:", address, coordinates);
+    form.setValue("deliveryAddress", address);
+  };
+
   return (
     <div className="space-y-8">
-      <BusinessMap 
+      <AdminMap 
         businesses={businesses || []}
         onSelectBusiness={handleBusinessSelect}
+      />
+      
+      {/* Carte pour sélectionner les adresses */}
+      <AddressMap
+        pickupAddress={form.getValues().pickupAddress}
+        deliveryAddress={form.getValues().deliveryAddress}
+        onPickupAddressChange={handlePickupAddressChange}
+        onDeliveryAddressChange={handleDeliveryAddressChange}
       />
 
       <Card>
@@ -136,10 +246,14 @@ export default function OrderForm() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={e => {
+              // Prévenir la soumission par défaut
+              e.preventDefault();
+              // Notre handler personnalisé sera appelé par le bouton
+            }} className="space-y-6">
               <div className="space-y-4">
                 <h3 className="font-medium">Articles</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {Object.entries(LaundryItem).map(([key, label]) => {
                     const itemCount = items.find((i) => i.item === key)?.quantity ?? 0;
                     return (
@@ -269,6 +383,7 @@ export default function OrderForm() {
                 />
               </div>
 
+              {/* Champs d'adresse en lecture seule */}
               <FormField
                 control={form.control}
                 name="pickupAddress"
@@ -276,9 +391,10 @@ export default function OrderForm() {
                   <FormItem>
                     <FormLabel>Adresse de ramassage</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} readOnly className="bg-muted" />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground">Sélectionnez l'adresse sur la carte ci-dessus</p>
                   </FormItem>
                 )}
               />
@@ -290,26 +406,30 @@ export default function OrderForm() {
                   <FormItem>
                     <FormLabel>Adresse de livraison</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} readOnly className="bg-muted" />
                     </FormControl>
                     <FormMessage />
+                    <p className="text-xs text-muted-foreground">Sélectionnez l'adresse sur la carte ci-dessus</p>
                   </FormItem>
                 )}
               />
 
-              <Button 
-                type="submit" 
-                disabled={
-                  createOrder.isPending || 
-                  !form.getValues().businessId || 
-                  items.length === 0
-                }
-              >
-                {createOrder.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Créer la commande
-              </Button>
+              <div className="space-y-2">
+                <Button 
+                  type="button" 
+                  disabled={
+                    createOrder.isPending || 
+                    !form.getValues().businessId || 
+                    (form.getValues().items as OrderItem[]).length === 0
+                  }
+                  onClick={() => onSubmit(form.getValues())}
+                >
+                  {createOrder.isPending && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Créer la commande
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
